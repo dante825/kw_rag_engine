@@ -201,6 +201,15 @@ cython_debug/
 .cursorignore
 .cursorindexingignore
 
+# Node
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# RAG data (generated at runtime)
+data/documents/
+vector_store/
+
 # Marimo
 marimo/_static/
 marimo/_lsp/

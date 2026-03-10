@@ -1,0 +1,19 @@
+from pydantic_settings import BaseSettings
+from pathlib import Path
+
+class Settings(BaseSettings):
+    ollama_base_url: str = "http://localhost:11434"
+    llm_model: str = "qwen3.5:9b"
+    embedding_model: str = "nomic-embed-text"
+    
+    chunk_size: int = 512
+    chunk_overlap: int = 50
+    top_k: int = 4
+    
+    data_dir: Path = Path("data/documents")
+    vector_store_dir: Path = Path("vector_store")
+    
+    class Config:
+        env_file = ".env"
+
+settings = Settings()
