@@ -207,10 +207,14 @@ npm-debug.log
 yarn-error.log
 
 # RAG data (generated at runtime)
-data/documents/
+backend/data/*
 vector_store/
+data/
 
 # Marimo
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# PIDs
+.service_pids
