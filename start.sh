@@ -26,7 +26,9 @@ fi
 
 (
     cd backend
-    PYTHONPATH="$PROJECT_DIR" /Users/kangwei/opt/anaconda3/envs/data_protector/bin/python -m backend.main > "$PROJECT_DIR/backend.log" 2>&1
+    PYTHONPATH="$PROJECT_DIR" /Users/kangwei/opt/anaconda3/envs/data_protector/bin/python -u -m backend.main 2>&1 | while IFS= read -r line; do
+        echo "$(date '+%Y-%m-%d %H:%M:%S') $line"
+    done > "$PROJECT_DIR/backend.log"
 ) &
 BACKEND_PID=$!
 

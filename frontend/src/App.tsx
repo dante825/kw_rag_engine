@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import ReactMarkdown from 'react-markdown';
 import { api, Document, QueryResponse } from './services/api';
 
 function App() {
@@ -142,7 +143,9 @@ function App() {
                 <div className="space-y-4">
                   <div>
                     <h3 className="font-semibold text-gray-700 mb-2">Answer</h3>
-                    <p className="text-gray-800 whitespace-pre-wrap">{answer.answer}</p>
+                    <div className="text-gray-800 prose prose-sm max-w-none">
+                      <ReactMarkdown>{answer.answer}</ReactMarkdown>
+                    </div>
                   </div>
                   {answer.sources.length > 0 && (
                     <div>

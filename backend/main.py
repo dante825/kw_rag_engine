@@ -16,4 +16,5 @@ app.include_router(router, prefix="/api")
 
 if __name__ == "__main__":
     import uvicorn
+    print("Starting RAG Engine backend...")
     uvicorn.run(app, host="0.0.0.0", port=8000)
