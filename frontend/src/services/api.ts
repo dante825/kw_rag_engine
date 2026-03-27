@@ -47,6 +47,50 @@ export const api = {
     return response.data;
   },
 
+  queryStream: async (
+    question: string,
+    topK: number | undefined,
+    onToken: (token: string) => void,
+    onSources: (sources: Source[]) => void,
+  ): Promise<void> => {
+    const response = await fetch(`${API_BASE}/query/stream`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question, top_k: topK }),
+    });
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({ detail: 'Query failed' }));
+      throw new Error(err.detail || 'Query failed');
+    }
+
+    const reader = response.body!.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() ?? '';
+
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        const data = line.slice(6).trim();
+        if (!data) continue;
+
+        const parsed = JSON.parse(data);
+        if (parsed.type === 'token') {
+          onToken(parsed.content);
+        } else if (parsed.type === 'sources') {
+          onSources(parsed.sources);
+        }
+      }
+    }
+  },
+
   healthCheck: async (): Promise<{ status: string }> => {
     const response = await axios.get(`${API_BASE}/health`);
     return response.data;
