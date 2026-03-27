@@ -1,48 +1,34 @@
 # RAG Engine - Local Document Q&A System
 
-**Project**: Local RAG System with Ollama  
-**Use Case**: Document Q&A  
-**Framework**: LangChain  
+**Use Case**: Multi-turn conversational Q&A over uploaded documents
+**Framework**: LangChain
 **Interface**: Web UI (FastAPI + React)
-
----
-
-## Current Status: ✅ COMPLETED
-
-The core RAG system is implemented and working. Both backend and frontend are running.
-
-### Running Services
-| Service | URL | Status |
-|---------|-----|--------|
-| Backend API | http://localhost:8000 | Running |
-| Frontend UI | http://localhost:5173 | Running |
-| Ollama | localhost:11434 | Using qwen3.5:9b |
 
 ---
 
 ## Quick Start
 
-### Prerequisites
-- [x] Ollama installed with models pulled
-- [x] Python dependencies installed
-- [x] Frontend dependencies installed
-
-### Start Backend
 ```bash
-cd /Users/kangwei/development/repo/kw_rag_engine
-python -m backend.main
+./start.sh    # start backend + frontend
+./stop.sh     # stop both services
+./status.sh   # check running status
 ```
 
-### Start Frontend
-```bash
-cd /Users/kangwei/development/repo/kw_rag_engine/frontend
-npm run dev
-```
+| Service | URL |
+|---------|-----|
+| Frontend UI | http://localhost:5173 |
+| Backend API | http://localhost:8000 |
+| Ollama | http://localhost:11434 |
 
-### Access
-- Open http://localhost:5173 in browser
-- Upload documents (PDF, TXT, DOC, DOCX)
-- Ask questions about your documents
+---
+
+## Features
+
+- **Upload documents** — PDF, TXT, DOC, DOCX
+- **Streaming answers** — LLM response streams token-by-token in real time
+- **Multi-turn conversation** — previous Q&A is retained in the session and passed as context so follow-up questions work naturally
+- **Document filter** — restrict search to a specific uploaded document using the dropdown in the chat panel
+- **Warm sepia UI** — easy-on-the-eyes color scheme with chat bubble layout and collapsible sources
 
 ---
 
@@ -51,26 +37,25 @@ npm run dev
 ```
 kw_rag_engine/
 ├── backend/
-│   ├── main.py              # FastAPI app entry
-│   ├── api/routes.py        # API endpoints
-│   ├── core/config.py       # Configuration
-│   ├── models/schemas.py   # Pydantic models
+│   ├── main.py                    # FastAPI app entry point
+│   ├── api/routes.py              # API endpoints
+│   ├── core/config.py             # Configuration (models, top_k, chunk size…)
+│   ├── models/schemas.py          # Pydantic request/response models
 │   └── services/
-│       ├── document_service.py   # Document loading/chunking
-│       ├── embedding_service.py   # ChromaDB + embeddings
-│       └── rag_service.py        # RAG chain
+│       ├── document_service.py    # File upload, loading, chunking
+│       ├── embedding_service.py   # ChromaDB vector store + embeddings
+│       └── rag_service.py         # Prompt building + LLM streaming
 ├── frontend/
 │   ├── src/
-│   │   ├── App.tsx          # Main UI
-│   │   ├── services/api.ts  # API client
-│   │   └── index.css       # Tailwind styles
-│   ├── package.json
-│   ├── vite.config.ts
-│   └── tailwind.config.js
-├── data/documents/          # Uploaded files
-├── vector_store/            # ChromaDB persistence
-├── requirements.txt
-└── README.md
+│   │   ├── App.tsx                # Main UI (chat, upload, document list)
+│   │   ├── services/api.ts        # API client (streaming + history)
+│   │   └── index.css              # Tailwind base styles
+│   ├── tailwind.config.js         # Custom sepia color palette
+│   └── vite.config.ts
+├── data/documents/                # Uploaded files (persisted)
+├── vector_store/                  # ChromaDB vector store (persisted)
+├── start.sh / stop.sh / status.sh
+└── requirements.txt
 ```
 
 ---
@@ -80,12 +65,11 @@ kw_rag_engine/
 | Component | Technology |
 |-----------|------------|
 | LLM | qwen3.5:9b (via Ollama) |
-| Embedding | nomic-embed-text |
-| Vector DB | ChromaDB |
+| Embeddings | nomic-embed-text (via Ollama) |
+| Vector DB | ChromaDB (persistent, cosine similarity) |
 | Orchestration | LangChain |
-| Backend | FastAPI |
+| Backend | FastAPI + Server-Sent Events (streaming) |
 | Frontend | React + Vite + TailwindCSS |
-| HTTP Client | Axios |
 
 ---
 
@@ -94,77 +78,59 @@ kw_rag_engine/
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | GET | `/api/health` | Health check |
-| POST | `/api/documents/upload` | Upload document |
-| GET | `/api/documents` | List documents |
-| DELETE | `/api/documents/{id}` | Delete document |
-| POST | `/api/query` | Ask question |
+| POST | `/api/documents/upload` | Upload a document |
+| GET | `/api/documents` | List uploaded documents |
+| DELETE | `/api/documents/{id}` | Delete a document |
+| POST | `/api/query` | Ask a question (non-streaming) |
+| POST | `/api/query/stream` | Ask a question (SSE streaming) |
+
+### Query request body
+
+```json
+{
+  "question": "What is the main topic?",
+  "top_k": 8,
+  "history": [
+    { "question": "previous question", "answer": "previous answer" }
+  ],
+  "doc_id_filter": "uuid-of-specific-doc-or-null"
+}
+```
 
 ---
 
 ## Configuration
 
-Edit `backend/core/config.py` to customize:
+Edit `backend/core/config.py`:
 
 ```python
-ollama_base_url: str = "http://localhost:11434"
 llm_model: str = "qwen3.5:9b"
 embedding_model: str = "nomic-embed-text"
-chunk_size: int = 512
-chunk_overlap: int = 50
-top_k: int = 4
-```
+ollama_base_url: str = "http://localhost:11434"
 
----
-
-## Next Steps (Optional Enhancements)
-
-### High Priority
-- [ ] Add streaming responses for real-time LLM output
-- [ ] Add chat history for conversation context
-- [ ] Add document parsing progress indicator
-
-### Medium Priority
-- [ ] Add authentication
-- [ ] Add multiple file upload
-- [ ] Add search result highlighting
-
-### Low Priority
-- [ ] Add support for more file types
-- [ ] Add export chat history
-- [ ] Add dark mode
-- [ ] Add RAG evaluation metrics
-
----
-
-## Testing the System
-
-```bash
-# Health check
-curl http://localhost:8000/api/health
-
-# Upload document
-curl -X POST -F "file=@data/documents/test.txt" http://localhost:8000/api/documents/upload
-
-# Query
-curl -X POST -H "Content-Type: application/json" \
-  -d '{"question": "What is RAG?"}' \
-  http://localhost:8000/api/query
+chunk_size: int = 512        # tokens per chunk
+chunk_overlap: int = 50      # overlap between chunks
+top_k: int = 8               # chunks retrieved per query
+llm_num_ctx: int = 8192      # LLM context window
+llm_num_predict: int = 2048  # max tokens to generate
 ```
 
 ---
 
 ## Troubleshooting
 
-### Backend not starting?
-- Check if port 8000 is free
+**Backend not starting?**
 - Verify Ollama is running: `ollama list`
 - Check Python dependencies: `pip install -r requirements.txt`
+- Check port 8000 is free
 
-### Frontend not loading?
-- Check if port 5173 is free
-- Run `npm install` in frontend directory
+**Frontend not loading?**
+- Run `npm install` in the `frontend/` directory
+- Check port 5173 is free
 
-### Query failing?
-- Verify Ollama models are pulled: `ollama list`
-- Check backend logs for errors
-- Ensure documents are uploaded first
+**Document filter returns no results?**
+- Documents uploaded before the filename-injection fix may not have the `[Source: filename]` prefix in their chunks. Re-upload them to fix this.
+
+**Query failing or slow?**
+- Check backend logs: `tail -f backend.log`
+- Ensure the Ollama models are pulled: `ollama pull qwen3.5:9b && ollama pull nomic-embed-text`
