@@ -19,13 +19,21 @@ class RAGService:
         self.sync_client = ollama.Client(host=settings.ollama_base_url)
         self.embedding_service = EmbeddingService()
 
-    def _build_prompt(self, question: str, context: str) -> str:
+    def _build_prompt(self, question: str, context: str, history: list = None) -> str:
+        history_block = ""
+        if history:
+            lines = []
+            for turn in history:
+                lines.append(f"Human: {turn.question}")
+                lines.append(f"Assistant: {turn.answer}")
+            history_block = "\nConversation history:\n" + "\n".join(lines) + "\n"
+
         return f"""/no_think
 Use the following pieces of context to answer the question at the end. If you don't know the answer based on the context, say so clearly.
 
 Context:
 {context}
-
+{history_block}
 Question: {question}
 
 Answer:"""
@@ -37,7 +45,7 @@ Answer:"""
             "temperature": 0.7,
         }
 
-    def query(self, question: str, top_k: int = None) -> QueryResponse:
+    def query(self, question: str, top_k: int = None, history: list = None) -> QueryResponse:
         top_k = top_k or settings.top_k
 
         results = self.embedding_service.similarity_search(question, top_k)
@@ -49,7 +57,7 @@ Answer:"""
             )
 
         context = "\n\n".join([doc.page_content for doc, _ in results])
-        prompt = self._build_prompt(question, context)
+        prompt = self._build_prompt(question, context, history)
 
         response = self.sync_client.chat(
             model=settings.llm_model,
@@ -70,7 +78,7 @@ Answer:"""
 
         return QueryResponse(answer=answer, sources=sources)
 
-    async def query_stream(self, question: str, top_k: int = None) -> AsyncGenerator[str, None]:
+    async def query_stream(self, question: str, top_k: int = None, history: list = None) -> AsyncGenerator[str, None]:
         top_k = top_k or settings.top_k
         t0 = time.monotonic()
 
@@ -89,7 +97,7 @@ Answer:"""
             return
 
         context = "\n\n".join([doc.page_content for doc, _ in results])
-        prompt = self._build_prompt(question, context)
+        prompt = self._build_prompt(question, context, history)
 
         sources = [
             {

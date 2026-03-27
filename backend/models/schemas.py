@@ -8,9 +8,14 @@ class Document(BaseModel):
     upload_date: datetime
     chunk_count: int
 
+class ConversationTurn(BaseModel):
+    question: str
+    answer: str
+
 class QueryRequest(BaseModel):
     question: str
     top_k: Optional[int] = None
+    history: Optional[List[ConversationTurn]] = None
 
 class Source(BaseModel):
     chunk_id: str

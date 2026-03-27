@@ -1,18 +1,31 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
-import { api, Document, QueryResponse, Source } from './services/api';
+import { api, Document, QueryResponse, Source, ConversationTurn } from './services/api';
+
+interface ConversationMessage {
+  question: string;
+  answer: string;
+  sources: Source[];
+}
 
 function App() {
   const [documents, setDocuments] = useState<Document[]>([]);
   const [question, setQuestion] = useState('');
-  const [answer, setAnswer] = useState<QueryResponse | null>(null);
+  const [history, setHistory] = useState<ConversationMessage[]>([]);
+  const [streamingAnswer, setStreamingAnswer] = useState<QueryResponse | null>(null);
+  const [streamingQuestion, setStreamingQuestion] = useState('');
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
+  const chatEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     loadDocuments();
   }, []);
+
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [history, streamingAnswer]);
 
   const loadDocuments = async () => {
     try {
@@ -52,30 +65,54 @@ function App() {
     e.preventDefault();
     if (!question.trim()) return;
 
+    const submittedQuestion = question;
+    setQuestion('');
+    setStreamingQuestion(submittedQuestion);
     setLoading(true);
     setError('');
-    setAnswer({ answer: '', sources: [] });
+    setStreamingAnswer({ answer: '', sources: [] });
+
+    const historyPayload: ConversationTurn[] = history.slice(-10).map(({ question, answer }) => ({ question, answer }));
+
+    let finalAnswer = '';
+    let finalSources: Source[] = [];
 
     try {
       await api.queryStream(
-        question,
+        submittedQuestion,
         undefined,
-        (token) => setAnswer((prev) => ({ answer: (prev?.answer ?? '') + token, sources: prev?.sources ?? [] })),
-        (sources: Source[]) => setAnswer((prev) => ({ answer: prev?.answer ?? '', sources })),
+        historyPayload,
+        (token) => {
+          finalAnswer += token;
+          setStreamingAnswer((prev) => ({
+            answer: (prev?.answer ?? '') + token,
+            sources: prev?.sources ?? [],
+          }));
+        },
+        (sources: Source[]) => {
+          finalSources = sources;
+          setStreamingAnswer((prev) => ({ answer: prev?.answer ?? '', sources }));
+        },
       );
+
+      setHistory((prev) => [
+        ...prev,
+        { question: submittedQuestion, answer: finalAnswer, sources: finalSources },
+      ]);
     } catch (err: any) {
       setError(err.message || 'Query failed');
-      setAnswer(null);
     } finally {
+      setStreamingAnswer(null);
+      setStreamingQuestion('');
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow-sm">
+    <div className="min-h-screen bg-sepia-50">
+      <header className="bg-sepia-100 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 py-4">
-          <h1 className="text-2xl font-bold text-gray-900">RAG Engine</h1>
+          <h1 className="text-2xl font-bold text-sepia-800">RAG Engine</h1>
         </div>
       </header>
 
@@ -88,26 +125,26 @@ function App() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-1 space-y-6">
-            <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-lg font-semibold mb-4">Upload Documents</h2>
+            <div className="bg-sepia-100 rounded-lg shadow p-6">
+              <h2 className="text-lg font-semibold mb-4 text-sepia-800">Upload Documents</h2>
               <input
                 type="file"
                 accept=".pdf,.txt,.doc,.docx"
                 onChange={handleUpload}
                 disabled={uploading}
-                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 disabled:opacity50"
+                className="block w-full text-sm text-sepia-600 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-sepia-200 file:text-sepia-700 hover:file:bg-sepia-300 disabled:opacity-50"
               />
-              {uploading && <p className="mt-2 text-sm text-gray-500">Uploading...</p>}
+              {uploading && <p className="mt-2 text-sm text-sepia-500">Uploading...</p>}
             </div>
 
-            <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-lg font-semibold mb-4">Documents</h2>
+            <div className="bg-sepia-100 rounded-lg shadow p-6">
+              <h2 className="text-lg font-semibold mb-4 text-sepia-800">Documents</h2>
               {documents.length === 0 ? (
-                <p className="text-sm text-gray-500">No documents uploaded</p>
+                <p className="text-sm text-sepia-500">No documents uploaded</p>
               ) : (
                 <ul className="space-y-2">
                   {documents.map((doc) => (
-                    <li key={doc.id} className="flex items-center justify-between text-sm">
+                    <li key={doc.id} className="flex items-center justify-between text-sm text-sepia-700">
                       <span className="truncate flex-1">{doc.filename}</span>
                       <button
                         onClick={() => handleDelete(doc.id)}
@@ -123,9 +160,93 @@ function App() {
           </div>
 
           <div className="lg:col-span-2">
-            <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-lg font-semibold mb-4">Ask Questions</h2>
-              <form onSubmit={handleQuery} className="mb-6">
+            <div className="bg-sepia-100 rounded-lg shadow p-6 flex flex-col" style={{ minHeight: '70vh' }}>
+              <h2 className="text-lg font-semibold mb-4 text-sepia-800">Ask Questions</h2>
+
+              {/* Chat history */}
+              <div className="flex-1 overflow-y-auto mb-4 space-y-4 max-h-[60vh]">
+                {history.length === 0 && !streamingAnswer && (
+                  <div className="flex flex-col items-center justify-center h-full py-12 space-y-6">
+                    <p className="text-sm text-sepia-400">Try asking one of these:</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-lg">
+                      {[
+                        'Summarize the main topics in the documents',
+                        'What are the key points covered?',
+                        'What conclusions does the document reach?',
+                        'Explain the most important concepts',
+                      ].map((suggestion) => (
+                        <button
+                          key={suggestion}
+                          onClick={() => setQuestion(suggestion)}
+                          className="text-left px-4 py-3 rounded-lg border border-sepia-300 bg-sepia-50 text-sm text-sepia-700 hover:bg-sepia-200 hover:border-sepia-400 transition-colors"
+                        >
+                          {suggestion}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {history.map((turn, idx) => (
+                  <div key={idx} className="space-y-2">
+                    {/* User bubble */}
+                    <div className="flex justify-end">
+                      <div className="bg-sepia-200 text-sepia-800 rounded-lg px-4 py-2 max-w-[80%] text-sm">
+                        {turn.question}
+                      </div>
+                    </div>
+                    {/* Assistant bubble */}
+                    <div className="flex justify-start">
+                      <div className="bg-sepia-50 border border-sepia-200 rounded-lg px-4 py-3 max-w-[80%]">
+                        <div className="text-sepia-800 prose prose-sm max-w-none">
+                          <ReactMarkdown>{turn.answer}</ReactMarkdown>
+                        </div>
+                        {turn.sources.length > 0 && (
+                          <details className="mt-2">
+                            <summary className="text-xs text-sepia-500 cursor-pointer select-none">
+                              Sources ({turn.sources.length})
+                            </summary>
+                            <div className="mt-2 space-y-1 max-h-40 overflow-y-auto">
+                              {turn.sources.map((source, sIdx) => (
+                                <div key={sIdx} className="p-2 bg-sepia-100 border border-sepia-200 rounded text-xs">
+                                  <div className="flex justify-between text-sepia-400 mb-1">
+                                    <span>Source {sIdx + 1}</span>
+                                    <span>{(source.score * 100).toFixed(1)}%</span>
+                                  </div>
+                                  <p className="text-sepia-600">{source.content}</p>
+                                </div>
+                              ))}
+                            </div>
+                          </details>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+
+                {/* In-progress streaming bubble */}
+                {streamingAnswer && (
+                  <div className="space-y-2">
+                    <div className="flex justify-end">
+                      <div className="bg-sepia-200 text-sepia-800 rounded-lg px-4 py-2 max-w-[80%] text-sm opacity-60">
+                        {streamingQuestion}
+                      </div>
+                    </div>
+                    <div className="flex justify-start">
+                      <div className="bg-sepia-50 border border-sepia-200 rounded-lg px-4 py-3 max-w-[80%]">
+                        <div className="text-sepia-800 prose prose-sm max-w-none">
+                          <ReactMarkdown>{streamingAnswer.answer || '...'}</ReactMarkdown>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <div ref={chatEndRef} />
+              </div>
+
+              {/* Input form */}
+              <form onSubmit={handleQuery}>
                 <div className="flex gap-2">
                   <input
                     type="text"
@@ -133,44 +254,17 @@ function App() {
                     onChange={(e) => setQuestion(e.target.value)}
                     placeholder="Enter your question..."
                     disabled={loading}
-                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="flex-1 px-4 py-2 border border-sepia-300 rounded-lg bg-sepia-50 text-sepia-800 placeholder-sepia-400 focus:outline-none focus:ring-2 focus:ring-sepia-500"
                   />
                   <button
                     type="submit"
                     disabled={loading || !question.trim()}
-                    className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="px-6 py-2 bg-sepia-500 text-white rounded-lg hover:bg-sepia-600 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {loading ? 'Thinking...' : 'Ask'}
                   </button>
                 </div>
               </form>
-
-              {answer && (
-                <div className="space-y-4">
-                  <div>
-                    <h3 className="font-semibold text-gray-700 mb-2">Answer</h3>
-                    <div className="text-gray-800 prose prose-sm max-w-none">
-                      <ReactMarkdown>{answer.answer}</ReactMarkdown>
-                    </div>
-                  </div>
-                  {answer.sources.length > 0 && (
-                    <div>
-                      <h3 className="font-semibold text-gray-700 mb-2">Sources</h3>
-                      <div className="space-y-2 max-h-60 overflow-y-auto">
-                        {answer.sources.map((source, idx) => (
-                          <div key={idx} className="p-3 bg-gray-50 rounded text-sm">
-                            <div className="flex justify-between text-xs text-gray-500 mb-1">
-                              <span>Source {idx + 1}</span>
-                              <span>Score: {(source.score * 100).toFixed(1)}%</span>
-                            </div>
-                            <p className="text-gray-700">{source.content}</p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
             </div>
           </div>
         </div>

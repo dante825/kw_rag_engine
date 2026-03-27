@@ -20,6 +20,11 @@ export interface QueryResponse {
   sources: Source[];
 }
 
+export interface ConversationTurn {
+  question: string;
+  answer: string;
+}
+
 export const api = {
   uploadDocument: async (file: File): Promise<Document> => {
     const formData = new FormData();
@@ -50,13 +55,14 @@ export const api = {
   queryStream: async (
     question: string,
     topK: number | undefined,
+    history: ConversationTurn[],
     onToken: (token: string) => void,
     onSources: (sources: Source[]) => void,
   ): Promise<void> => {
     const response = await fetch(`${API_BASE}/query/stream`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ question, top_k: topK }),
+      body: JSON.stringify({ question, top_k: topK, history }),
     });
 
     if (!response.ok) {
