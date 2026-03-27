@@ -14,6 +14,7 @@ function App() {
   const [history, setHistory] = useState<ConversationMessage[]>([]);
   const [streamingAnswer, setStreamingAnswer] = useState<QueryResponse | null>(null);
   const [streamingQuestion, setStreamingQuestion] = useState('');
+  const [docIdFilter, setDocIdFilter] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
@@ -82,6 +83,7 @@ function App() {
         submittedQuestion,
         undefined,
         historyPayload,
+        docIdFilter,
         (token) => {
           finalAnswer += token;
           setStreamingAnswer((prev) => ({
@@ -161,7 +163,23 @@ function App() {
 
           <div className="lg:col-span-2">
             <div className="bg-sepia-100 rounded-lg shadow p-6 flex flex-col" style={{ minHeight: '70vh' }}>
-              <h2 className="text-lg font-semibold mb-4 text-sepia-800">Ask Questions</h2>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold text-sepia-800">Ask Questions</h2>
+                <div className="flex items-center gap-2 text-sm text-sepia-600">
+                  <label htmlFor="doc-filter">Filter:</label>
+                  <select
+                    id="doc-filter"
+                    value={docIdFilter ?? ''}
+                    onChange={(e) => setDocIdFilter(e.target.value || null)}
+                    className="px-2 py-1 border border-sepia-300 rounded bg-sepia-50 text-sepia-700 focus:outline-none focus:ring-1 focus:ring-sepia-500"
+                  >
+                    <option value="">All documents</option>
+                    {documents.map((doc) => (
+                      <option key={doc.id} value={doc.id}>{doc.filename}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
 
               {/* Chat history */}
               <div className="flex-1 overflow-y-auto mb-4 space-y-4 max-h-[60vh]">

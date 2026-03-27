@@ -40,13 +40,15 @@ class EmbeddingService:
             metadatas=metadatas
         )
 
-    def similarity_search(self, query: str, top_k: int = None) -> List[Tuple[Document, float]]:
+    def similarity_search(self, query: str, top_k: int = None, doc_id_filter: str = None) -> List[Tuple[Document, float]]:
         top_k = top_k or settings.top_k
-        
+
         query_embedding = self.embeddings.embed_query(query)
+        where = {"doc_id": doc_id_filter} if doc_id_filter else None
         results = self.collection.query(
             query_embeddings=[query_embedding],
-            n_results=top_k
+            n_results=top_k,
+            where=where,
         )
         
         docs_with_scores = []

@@ -16,6 +16,7 @@ class QueryRequest(BaseModel):
     question: str
     top_k: Optional[int] = None
     history: Optional[List[ConversationTurn]] = None
+    doc_id_filter: Optional[str] = None
 
 class Source(BaseModel):
     chunk_id: str

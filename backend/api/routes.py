@@ -95,7 +95,7 @@ async def query_document(
     rag_service: RAGService = Depends(get_rag_service),
 ):
     try:
-        result = await asyncio.to_thread(rag_service.query, request.question, request.top_k, request.history)
+        result = await asyncio.to_thread(rag_service.query, request.question, request.top_k, request.history, request.doc_id_filter)
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -107,7 +107,7 @@ async def query_document_stream(
     rag_service: RAGService = Depends(get_rag_service),
 ):
     return StreamingResponse(
-        rag_service.query_stream(request.question, request.top_k, request.history),
+        rag_service.query_stream(request.question, request.top_k, request.history, request.doc_id_filter),
         media_type="text/event-stream",
         headers={
             "Cache-Control": "no-cache",

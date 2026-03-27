@@ -45,10 +45,10 @@ Answer:"""
             "temperature": 0.7,
         }
 
-    def query(self, question: str, top_k: int = None, history: list = None) -> QueryResponse:
+    def query(self, question: str, top_k: int = None, history: list = None, doc_id_filter: str = None) -> QueryResponse:
         top_k = top_k or settings.top_k
 
-        results = self.embedding_service.similarity_search(question, top_k)
+        results = self.embedding_service.similarity_search(question, top_k, doc_id_filter)
 
         if not results:
             return QueryResponse(
@@ -78,7 +78,7 @@ Answer:"""
 
         return QueryResponse(answer=answer, sources=sources)
 
-    async def query_stream(self, question: str, top_k: int = None, history: list = None) -> AsyncGenerator[str, None]:
+    async def query_stream(self, question: str, top_k: int = None, history: list = None, doc_id_filter: str = None) -> AsyncGenerator[str, None]:
         top_k = top_k or settings.top_k
         t0 = time.monotonic()
 
@@ -86,7 +86,7 @@ Answer:"""
         logger.info("Step 1/2: Running similarity search (top_k=%d)...", top_k)
 
         results = await asyncio.to_thread(
-            self.embedding_service.similarity_search, question, top_k
+            self.embedding_service.similarity_search, question, top_k, doc_id_filter
         )
 
         logger.info("Step 1/2 done: found %d chunks (%.2fs)", len(results), time.monotonic() - t0)

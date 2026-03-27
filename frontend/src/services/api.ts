@@ -56,13 +56,14 @@ export const api = {
     question: string,
     topK: number | undefined,
     history: ConversationTurn[],
+    docIdFilter: string | null,
     onToken: (token: string) => void,
     onSources: (sources: Source[]) => void,
   ): Promise<void> => {
     const response = await fetch(`${API_BASE}/query/stream`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ question, top_k: topK, history }),
+      body: JSON.stringify({ question, top_k: topK, history, doc_id_filter: docIdFilter }),
     });
 
     if (!response.ok) {

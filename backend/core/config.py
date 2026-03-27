@@ -7,12 +7,12 @@ class Settings(BaseSettings):
     embedding_model: str = "nomic-embed-text"
     
     llm_num_predict: int = 2048  # max tokens to generate per response
-    llm_num_ctx: int = 4096      # context window size (reduces prefill time vs 32k default)
+    llm_num_ctx: int = 8192      # context window size (increased to fit more chunks + history)
     llm_think: bool = False      # disable Qwen3 chain-of-thought thinking mode
 
     chunk_size: int = 512
     chunk_overlap: int = 50
-    top_k: int = 4
+    top_k: int = 8
     
     data_dir: Path = Path("data/documents")
     vector_store_dir: Path = Path("vector_store")
