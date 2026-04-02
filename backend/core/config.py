@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     chunk_size: int = 512
     chunk_overlap: int = 50
     top_k: int = 8
+    min_relevance_score: float = 0.3  # discard chunks below this cosine similarity
     
     data_dir: Path = Path("data/documents")
     vector_store_dir: Path = Path("vector_store")

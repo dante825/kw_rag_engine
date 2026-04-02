@@ -63,7 +63,8 @@ class EmbeddingService:
                     metadata=metadata
                 )
                 score = 1 - distance
-                docs_with_scores.append((doc, score))
+                if score >= settings.min_relevance_score:
+                    docs_with_scores.append((doc, score))
         
         return docs_with_scores
 
