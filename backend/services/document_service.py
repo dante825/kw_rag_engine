@@ -13,7 +13,7 @@ class DocumentService:
     def __init__(self):
         settings.data_dir.mkdir(parents=True, exist_ok=True)
         self.text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=settings.chunk_size,
+            chunk_size=settings.chunk_size,    # measured in characters by len()
             chunk_overlap=settings.chunk_overlap,
             length_function=len,
         )

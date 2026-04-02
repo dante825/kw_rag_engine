@@ -11,8 +11,8 @@ class Settings(BaseSettings):
     llm_think: bool = False       # disable Qwen3 chain-of-thought thinking mode
     llm_temperature: float = 0.1  # low temperature for factual document Q&A
 
-    chunk_size: int = 512
-    chunk_overlap: int = 50
+    chunk_size: int = 2000   # characters (not tokens); ~400-500 tokens at typical English density
+    chunk_overlap: int = 200  # characters
     top_k: int = 8
     min_relevance_score: float = 0.3  # discard chunks below this cosine similarity
     
