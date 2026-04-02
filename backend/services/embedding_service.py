@@ -69,10 +69,7 @@ class EmbeddingService:
         return docs_with_scores
 
     def delete_by_doc_id(self, doc_id: str):
-        all_ids = self.collection.get()["ids"]
-        ids_to_delete = [id for id in all_ids if id.startswith(doc_id)]
-        if ids_to_delete:
-            self.collection.delete(ids=ids_to_delete)
+        self.collection.delete(where={"doc_id": doc_id})
 
     def get_chunk_count(self) -> int:
         return self.collection.count()
