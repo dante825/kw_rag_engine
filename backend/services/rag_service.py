@@ -42,7 +42,7 @@ Answer:"""
         return {
             "num_predict": settings.llm_num_predict,
             "num_ctx": settings.llm_num_ctx,
-            "temperature": 0.7,
+            "temperature": settings.llm_temperature,
         }
 
     def query(self, question: str, top_k: int = None, history: list = None, doc_id_filter: str = None) -> QueryResponse:
