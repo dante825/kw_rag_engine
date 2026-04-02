@@ -47,7 +47,6 @@ class DocumentService:
         chunks = self.chunk_documents(docs)
         
         for i, chunk in enumerate(chunks):
-            chunk.page_content = f"[Source: {filename}]\n{chunk.page_content}"
             chunk.metadata["chunk_id"] = f"{doc_id}_{i}"
             chunk.metadata["doc_id"] = doc_id
             chunk.metadata["filename"] = filename

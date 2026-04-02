@@ -56,7 +56,10 @@ Answer:"""
                 sources=[]
             )
 
-        context = "\n\n".join([doc.page_content for doc, _ in results])
+        context = "\n\n".join(
+            f"[Source: {doc.metadata.get('filename', 'unknown')}]\n{doc.page_content}"
+            for doc, _ in results
+        )
         prompt = self._build_prompt(question, context, history)
 
         response = self.sync_client.chat(
@@ -96,7 +99,10 @@ Answer:"""
             yield f"data: {json.dumps({'type': 'done'})}\n\n"
             return
 
-        context = "\n\n".join([doc.page_content for doc, _ in results])
+        context = "\n\n".join(
+            f"[Source: {doc.metadata.get('filename', 'unknown')}]\n{doc.page_content}"
+            for doc, _ in results
+        )
         prompt = self._build_prompt(question, context, history)
 
         sources = [
