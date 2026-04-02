@@ -62,6 +62,13 @@ function App() {
     }
   };
 
+  const handleNewChat = () => {
+    setHistory([]);
+    setStreamingAnswer(null);
+    setStreamingQuestion('');
+    setError('');
+  };
+
   const handleQuery = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!question.trim()) return;
@@ -164,7 +171,17 @@ function App() {
           <div className="lg:col-span-2">
             <div className="bg-sepia-100 rounded-lg shadow p-6 flex flex-col" style={{ minHeight: '70vh' }}>
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-sepia-800">Ask Questions</h2>
+                <div className="flex items-center gap-3">
+                  <h2 className="text-lg font-semibold text-sepia-800">Ask Questions</h2>
+                  {history.length > 0 && (
+                    <button
+                      onClick={handleNewChat}
+                      className="px-3 py-1 text-xs rounded-full border border-sepia-400 text-sepia-600 hover:bg-sepia-200 transition-colors"
+                    >
+                      New Chat
+                    </button>
+                  )}
+                </div>
                 <div className="flex items-center gap-2 text-sm text-sepia-600">
                   <label htmlFor="doc-filter">Filter:</label>
                   <select
